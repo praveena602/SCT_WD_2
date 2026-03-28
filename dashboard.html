@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Smart Stopwatch</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body{
+margin:0;
+font-family:Arial;
+background:#111;
+color:white;
+text-align:center;
+transition:0.5s;
+}
+
+.light{
+background:#f4f4f4;
+color:black;
+}
+
+.header{
+display:flex;
+justify-content:space-between;
+padding:15px;
+background:#222;
+}
+
+.container{
+margin-top:20px;
+}
+
+.title{
+font-size:30px;
+}
+
+/* DISPLAY */
+#display{
+font-size:45px;
+margin:20px auto;
+width:320px;
+padding:15px;
+border-radius:10px;
+background:#333;
+}
+
+/* BUTTON */
+button{
+padding:10px;
+margin:5px;
+border:none;
+border-radius:5px;
+color:white;
+cursor:pointer;
+}
+
+.start{background:green;}
+.pause{background:orange;}
+.reset{background:red;}
+.lap{background:blue;}
+.mode{background:purple;}
+
+/* LAPS */
+#laps{
+width:320px;
+margin:20px auto;
+text-align:left;
+}
+
+.lap-item{
+background:#444;
+padding:6px;
+margin:4px 0;
+border-radius:5px;
+}
+
+.best{background:gold;color:black;}
+
+/* STATS */
+.stats{
+margin-top:15px;
+}
+
+/* GRAPH */
+canvas{
+margin-top:20px;
+background:white;
+border-radius:10px;
+}
+
+/* INPUT */
+input{
+padding:8px;
+border-radius:5px;
+border:none;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="header">
+<div>👋 {{ user }}</div>
+<a href="/logout" style="color:white;">Logout</a>
+</div>
+
+<div class="container">
+
+<h2 class="title">⏱ Smart Stopwatch</h2>
+
+<div id="display">00:00:00:00</div>
+
+<input type="text" id="target" placeholder="Target (HH:MM:SS)">
+
+<br>
+
+<button class="start" onclick="start()">Start</button>
+<button class="pause" onclick="pause()">Pause</button>
+<button class="reset" onclick="reset()">Reset</button>
+<button class="lap" onclick="lap()">Lap</button>
+<button class="mode" onclick="toggleMode()">Mode</button>
+
+<div id="laps">
+{% for lap in laps %}
+<div class="lap-item">{{ lap[0] }}</div>
+{% endfor %}
+</div>
+
+<div class="stats">
+<p>Total: <span id="total">0</span></p>
+<p>Best: <span id="best">-</span></p>
+<p>Average: <span id="avg">-</span></p>
+</div>
+
+<canvas id="chart" width="300" height="200"></canvas>
+
+</div>
+
+<script>
+
+let ms=0,sec=0,min=0,hr=0;
+let timer=null;
+let laps=[];
+let bestTime=null;
+let chart;
+
+/* FORMAT */
+function format(){
+return `${hr.toString().padStart(2,'0')}:${min.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}:${ms.toString().padStart(2,'0')}`;
+}
+
+/* TIME TO MS */
+function toMs(t){
+let p=t.split(":");
+return (+p[0]*360000)+(+p[1]*6000)+(+p[2]*100)+(+p[3]);
+}
+
+/* MS TO TIME */
+function msToTime(ms){
+let h=Math.floor(ms/360000);
+let m=Math.floor((ms%360000)/6000);
+let s=Math.floor((ms%6000)/100);
+let milli=ms%100;
+
+return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}:${milli.toString().padStart(2,'0')}`;
+}
+
+/* UPDATE */
+function update(){
+let time=format();
+document.getElementById("display").innerText=time;
+
+/* TARGET */
+let target=document.getElementById("target").value;
+if(target && time.startsWith(target)){
+alert("Target reached!");
+}
+
+localStorage.setItem("time",time);
+}
+
+/* START */
+function start(){
+if(timer) return;
+timer=setInterval(()=>{
+ms++;
+if(ms==100){ms=0;sec++;}
+if(sec==60){sec=0;min++;}
+if(min==60){min=0;hr++;}
+update();
+},10);
+}
+
+/* PAUSE */
+function pause(){
+clearInterval(timer);
+timer=null;
+}
+
+/* RESET */
+function reset(){
+clearInterval(timer);
+timer=null;
+
+ms=sec=min=hr=0;
+laps=[];
+bestTime=null;
+
+update();
+
+document.getElementById("laps").innerHTML="";
+document.getElementById("total").innerText="0";
+document.getElementById("best").innerText="-";
+document.getElementById("avg").innerText="-";
+
+if(chart) chart.destroy();
+}
+
+/* UPDATE STATS */
+function updateStats(){
+if(laps.length===0) return;
+
+document.getElementById("total").innerText=laps.length;
+
+/* BEST */
+bestTime = laps.reduce((a,b)=> toMs(a)<toMs(b)?a:b);
+document.getElementById("best").innerText=bestTime;
+
+/* AVG */
+let sum=laps.reduce((acc,t)=>acc+toMs(t),0);
+let avg=sum/laps.length;
+document.getElementById("avg").innerText=msToTime(avg);
+}
+
+/* GRAPH */
+function updateGraph(){
+let ctx=document.getElementById("chart").getContext("2d");
+let data=laps.map(t=>toMs(t));
+
+if(chart) chart.destroy();
+
+chart=new Chart(ctx,{
+type:'line',
+data:{
+labels:laps.map((_,i)=>"Lap "+(i+1)),
+datasets:[{
+label:"Lap Time",
+data:data
+}]
+}
+});
+}
+
+/* LAP */
+function lap(){
+let time=format();
+laps.push(time);
+
+/* UI */
+let div=document.createElement("div");
+div.className="lap-item";
+div.innerText=time;
+
+document.getElementById("laps").appendChild(div);
+
+/* UPDATE */
+updateStats();
+updateGraph();
+
+/* SAVE DB */
+fetch('/save_lap',{
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body: JSON.stringify({time:time})
+});
+}
+
+/* MODE */
+function toggleMode(){
+document.body.classList.toggle("light");
+}
+
+/* LOAD */
+window.onload=function(){
+let saved=localStorage.getItem("time");
+if(saved){
+document.getElementById("display").innerText=saved;
+}
+}
+
+</script>
+
+</body>
+</html>
