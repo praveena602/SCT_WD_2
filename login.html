@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Stopwatch Login</title>
+
+<style>
+body{
+margin:0;
+font-family:Arial;
+height:100vh;
+display:flex;
+justify-content:center;
+align-items:center;
+background: linear-gradient(120deg,#4facfe,#00f2fe);
+}
+
+/* BOX */
+.container{
+width:350px;
+background:white;
+padding:30px;
+border-radius:10px;
+text-align:center;
+box-shadow:0 5px 20px rgba(0,0,0,0.2);
+}
+
+/* TITLE */
+.title{
+font-size:28px;
+font-weight:bold;
+color:#007BFF;
+margin-bottom:20px;
+}
+
+/* INPUT */
+input{
+width:100%;
+padding:10px;
+margin:10px 0;
+border:1px solid #ccc;
+border-radius:5px;
+}
+
+/* BUTTON */
+button{
+width:100%;
+padding:10px;
+background:#007BFF;
+color:white;
+border:none;
+border-radius:5px;
+cursor:pointer;
+}
+
+button:hover{
+background:#0056b3;
+}
+
+.toggle{
+margin-top:10px;
+color:#007BFF;
+cursor:pointer;
+}
+
+.hidden{display:none;}
+
+.error{color:red;}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="title">⏱ Stopwatch App</div>
+
+<h3 id="formTitle">Login</h3>
+
+<form method="POST" id="loginForm">
+<input type="text" name="username" placeholder="Username" required>
+<input type="password" name="password" placeholder="Password" required>
+<button type="submit">Login</button>
+</form>
+
+{% if error %}
+<p class="error">{{ error }}</p>
+{% endif %}
+
+<form action="/register" method="POST" id="registerForm" class="hidden">
+<input type="text" name="username" placeholder="Username" required>
+<input type="password" name="password" placeholder="Password" required>
+<button type="submit">Sign Up</button>
+</form>
+
+<p class="toggle" onclick="toggleForm()">Create account</p>
+
+</div>
+
+<script>
+function toggleForm(){
+let login=document.getElementById("loginForm");
+let register=document.getElementById("registerForm");
+let title=document.getElementById("formTitle");
+
+if(login.classList.contains("hidden")){
+login.classList.remove("hidden");
+register.classList.add("hidden");
+title.innerText="Login";
+}else{
+login.classList.add("hidden");
+register.classList.remove("hidden");
+title.innerText="Sign Up";
+}
+}
+</script>
+
+</body>
+</html>
